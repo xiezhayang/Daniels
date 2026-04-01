@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: daniels
+  labels:
+    app.kubernetes.io/name: daniels
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: daniels-config
+  namespace: daniels
+  labels:
+    app: daniels
+data:
+  GATEWAY_PORT: "18080"
+  # 与 Carve/deploy/service.yaml、Omar/deploy/default.yaml 中 Service 一致（跨 ns 用 FQDN）
+  CARVE_BASE_URL: "http://carve.carve.svc.cluster.local:8080"
+  OMAR_BASE_URL: "http://omar-service.omar-chaos.svc.cluster.local:8080"
+  GRAFANA_BASE_URL: "http://grafana.otel-demo.svc.cluster.local:80"
+  PROMETHEUS_BASE_URL: "http://prometheus.otel-demo.svc.cluster.local:9090"
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: daniels
+  namespace: daniels
+  labels:
+    app: daniels
+spec:
+  type: ClusterIP
+  selector:
+    app: daniels
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: daniels
+  namespace: daniels
+  labels:
+    app: daniels
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: daniels
+  template:
+    metadata:
+      labels:
+        app: daniels
+    spec:
+      containers:
+        - name: daniels
+          image: daniels:t1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 18080
+          envFrom:
+            - configMapRef:
+                name: daniels-config
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
