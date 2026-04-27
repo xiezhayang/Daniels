@@ -1,0 +1,57 @@
+run_name: "exp_with_fixed_pod"
+seed: 20260427
+
+# 直连 Omar（推荐你现在先这样）
+base_url: "http://127.0.0.1:8080"
+inject_endpoint: "/api/v1/experiments"
+stop_scheduler_endpoint: "/api/v1/scheduler/stop"
+
+# 如果走 Daniels 转发，把上面改成：
+# base_url: "http://127.0.0.1:18080"
+# inject_endpoint: "/prod-api/omar/api/v1/experiments"
+# stop_scheduler_endpoint: "/prod-api/omar/api/v1/scheduler/stop"
+
+run_seconds: 900
+first_inject_after_sec: 60
+min_gap_sec: 80
+max_gap_sec: 160
+
+request_timeout_sec: 15
+max_retries: 2
+retry_backoff_sec: 1.5
+
+# ===== 关键：目标策略 =====
+# 可选：
+# - fixed_pod        固定注入某一个 Pod
+# - random_pod_pool  从 Pod 池随机选
+# - random_node      节点实验（可指定 node_name，也可让 Omar 自动选）
+# - mixed            pod/node 混合随机
+target_strategy: "fixed_pod"
+
+fixed_pod:
+  target_type: "pod"
+  target_name: "checkoutservice-7f8d9f6b7c-abcde"
+  target_namespace: "default"
+
+pod_pool:
+  - target_type: "pod"
+    target_f66cc8f-xyz12"
+    target_namespace: "default"
+
+node_pool:
+  - target_type: "node"
+    target_name: ""          # 为空表示交给 Omar 自动挑节点
+    target_namespace: ""
+
+mixed_target_weights:
+  pod: 0.7
+  node: 0.3
+
+# 实验类型权重（建议与你 Omar 当前支持一致）
+experiment_weights:
+  cpu-load: 0.6
+  mem-load: 0.4
+
+duration_range_sec: [60, 180]
+cpu_load_percent_range: [20, 55]      # Omar校验区间10~60
+memory_load_percent_range: [10, 45]   # Omar校验区间5~60
